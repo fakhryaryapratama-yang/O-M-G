@@ -1,5 +1,9 @@
 # 🤖 Project 2 - Telegram Bot  
 ## 👥 Kelompok: O. M. G.
+# Anggota:
+1. Nama: Fadhil
+2. Nama: Faris
+3. Nama: Fakhry
 
 ---
 
