@@ -139,3 +139,45 @@ def cari_produk(keyword: str):
     ).fetchall()
     conn.close()
     return rows
+# ── PESANAN ──────────────────────────────────────────────────────────────────
+
+def buat_pesanan(user_id, username, nama, hp, alamat, catatan, produk, harga_teks, qty) -> int:
+    """Simpan pesanan baru. Return id pesanan."""
+    conn = get_conn()
+    cur = conn.execute(
+        """INSERT INTO pesanan (user_id, username, nama, hp, alamat, catatan, produk, harga_teks, qty, status)
+           VALUES (?,?,?,?,?,?,?,?,?,?)""",
+        (user_id, username or "unknown", nama, hp, alamat, catatan, produk, harga_teks, qty, STATUS_MENUNGGU),
+    )
+    pesanan_id = cur.lastrowid
+    conn.commit()
+    conn.close()
+    return pesanan_id
+
+
+def get_pesanan(pesanan_id: int):
+    conn = get_conn()
+    row = conn.execute("SELECT * FROM pesanan WHERE id = ?", (pesanan_id,)).fetchone()
+    conn.close()
+    return row
+
+
+def update_status_pesanan(pesanan_id: int, status: str, pesan_tolak: str = ""):
+    conn = get_conn()
+    conn.execute(
+        "UPDATE pesanan SET status = ?, pesan_tolak = ? WHERE id = ?",
+        (status, pesan_tolak, pesanan_id),
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_semua_pesanan_hari_ini():
+    conn = get_conn()
+    today = datetime.now().strftime("%Y-%m-%d")
+    rows = conn.execute(
+        "SELECT * FROM pesanan WHERE waktu LIKE ? ORDER BY waktu DESC",
+        (f"{today}%",),
+    ).fetchall()
+    conn.close()
+    return rows
