@@ -102,3 +102,80 @@ def kb_konfirmasi_pemilik(pesanan_id: int) -> InlineKeyboardMarkup:
         ]
     ])
 
+# ══════════════════════════════════════════════════════════════════════════════
+# HELPER FORMAT
+# ══════════════════════════════════════════════════════════════════════════════
+
+def label_stok(qty: int) -> str:
+    if qty == 0:   return "❌ Habis"
+    if qty <= 3:   return f"⚠️ Terbatas ({qty})"
+    return f"✅ Ada ({qty})"
+
+
+def format_detail_kategori(kategori_nama: str) -> str:
+    rows = get_stok_by_kategori(kategori_nama)
+    emoji = KATALOG[kategori_nama]["emoji"]
+    teks = f"{emoji} *{kategori_nama}*\n{'─'*32}\n"
+    for r in rows:
+        teks += f"• *{r['produk']}*\n"
+        teks += f"  💰 {r['harga_teks']}   {label_stok(r['qty'])}\n"
+    return teks
+
+
+def format_notif_pemilik(p) -> str:
+    """Format notifikasi pesanan baru untuk pemilik."""
+    return (
+        f"🔔 *PESANAN BARU — #{p['id']}*\n"
+        f"{'═'*30}\n"
+        f"👤 *Nama:* {p['nama']}\n"
+        f"📱 *HP/WA:* {p['hp']}\n"
+        f"📍 *Alamat:* {p['alamat']}\n"
+        f"📝 *Catatan:* {p['catatan'] or '-'}\n\n"
+        f"🛍️ *Produk:* {p['produk']}\n"
+        f"💰 *Harga:* {p['harga_teks']}\n"
+        f"🔢 *Jumlah:* {p['qty']}\n\n"
+        f"⏰ {p['waktu']}"
+    )
+
+
+def format_laporan(lap: dict) -> str:
+    teks = (
+        f"📊 *Laporan Harian Toko Samira*\n"
+        f"📅 {lap['tanggal']}\n"
+        f"{'═'*32}\n\n"
+        f"👥 Pelanggan unik: *{lap['pengguna_unik']}*\n"
+        f"💬 Total interaksi: *{lap['total_interaksi']}*\n\n"
+    )
+
+    # Pesanan hari ini
+    teks += "🛒 *Pesanan Hari Ini:*\n"
+    if lap["pesanan"]:
+        diterima = [p for p in lap["pesanan"] if p["status"] == "diterima"]
+        ditolak  = [p for p in lap["pesanan"] if p["status"] == "ditolak"]
+        menunggu = [p for p in lap["pesanan"] if p["status"] == "menunggu"]
+        teks += f"  ✅ Diterima: {len(diterima)}  ❌ Ditolak: {len(ditolak)}  ⏳ Menunggu: {len(menunggu)}\n"
+        for p in lap["pesanan"]:
+            icon = {"diterima": "✅", "ditolak": "❌", "menunggu": "⏳"}.get(p["status"], "•")
+            teks += f"  {icon} #{p['id']} {p['produk']} x{p['qty']} — {p['nama']}\n"
+    else:
+        teks += "  _Belum ada pesanan_\n"
+
+    # Top produk dilihat
+    teks += "\n🔥 *Produk Paling Diminati:*\n"
+    if lap["top_produk"]:
+        for i, p in enumerate(lap["top_produk"], 1):
+            teks += f"  {i}. {p['detail']} ({p['n']}x)\n"
+    else:
+        teks += "  _Belum ada data_\n"
+
+    # Stok kritis
+    teks += "\n⚠️ *Stok Perlu Diperhatikan:*\n"
+    if lap["stok_kritis"]:
+        for s in lap["stok_kritis"]:
+            st = "❌ HABIS" if s["qty"] == 0 else f"⚠️ Sisa {s['qty']}"
+            teks += f"  • {s['produk']} → {st}\n"
+    else:
+        teks += "  ✅ Semua stok aman\n"
+
+    return teks
+
