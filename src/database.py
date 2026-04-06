@@ -181,3 +181,13 @@ def get_semua_pesanan_hari_ini():
     ).fetchall()
     conn.close()
     return rows
+# ── LOG ───────────────────────────────────────────────────────────────────────
+
+def log_aktivitas(user_id, username, aksi, detail=""):
+    conn = get_conn()
+    conn.execute(
+        "INSERT INTO log_aktivitas (user_id, username, aksi, detail) VALUES (?,?,?,?)",
+        (user_id, username or "unknown", aksi, detail),
+    )
+    conn.commit()
+    conn.close()
