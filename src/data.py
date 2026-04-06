@@ -13,7 +13,7 @@ INFO_TOKO = {
     "pemilik_telegram_id": 6267661434,      # ← Ganti dengan Telegram ID pemilik (angka)
                                    #   Cara cek: kirim pesan ke @userinfobot
 }
-# ─── Katalog Produk ──────────────────────────────────────────────────────────
+# ─── Katalog Produk ────────────────────────────────────────────────────
 KATALOG = {
     "Ember & Baskom": {
         "emoji": "🪣",
