@@ -77,3 +77,65 @@ def init_db():
         conn.commit()
 
     conn.close()
+# ── STOK ─────────────────────────────────────────────────────────────────────
+
+def get_stok_by_kategori(kategori: str):
+    conn = get_conn()
+    rows = conn.execute(
+        "SELECT * FROM stok WHERE kategori = ? ORDER BY produk", (kategori,)
+    ).fetchall()
+    conn.close()
+    return rows
+
+
+def get_stok_produk(produk: str):
+    conn = get_conn()
+    row = conn.execute("SELECT * FROM stok WHERE produk = ?", (produk,)).fetchone()
+    conn.close()
+    return row
+
+
+def get_stok_kritis():
+    conn = get_conn()
+    rows = conn.execute(
+        "SELECT * FROM stok WHERE qty <= 3 ORDER BY qty ASC"
+    ).fetchall()
+    conn.close()
+    return rows
+
+
+def kurangi_stok(produk: str, qty: int) -> bool:
+    conn = get_conn()
+    row = conn.execute("SELECT qty FROM stok WHERE produk = ?", (produk,)).fetchone()
+    if not row or row["qty"] < qty:
+        conn.close()
+        return False
+    conn.execute("UPDATE stok SET qty = qty - ? WHERE produk = ?", (qty, produk))
+    conn.commit()
+    conn.close()
+    return True
+
+
+def kembalikan_stok(produk: str, qty: int):
+    """Kembalikan stok jika pesanan ditolak."""
+    conn = get_conn()
+    conn.execute("UPDATE stok SET qty = qty + ? WHERE produk = ?", (qty, produk))
+    conn.commit()
+    conn.close()
+
+
+def tambah_stok(produk: str, qty: int):
+    conn = get_conn()
+    conn.execute("UPDATE stok SET qty = qty + ? WHERE produk = ?", (qty, produk))
+    conn.commit()
+    conn.close()
+
+
+def cari_produk(keyword: str):
+    conn = get_conn()
+    rows = conn.execute(
+        "SELECT * FROM stok WHERE LOWER(produk) LIKE ? OR LOWER(kategori) LIKE ?",
+        (f"%{keyword.lower()}%", f"%{keyword.lower()}%"),
+    ).fetchall()
+    conn.close()
+    return rows
