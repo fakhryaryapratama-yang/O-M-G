@@ -84,4 +84,22 @@ KATALOG = {
             "Mika makanan":   "Rp10.000 – Rp50.000/pack",
             "Styrofoam":      "Rp20.000 – Rp60.000/pack",
         },
+},
+    "Cetakan & Loyang": {
+        "emoji": "🧁",
+        "produk": {
+            "Cetakan es batu": "Rp5.000 – Rp15.000",
+            "Cetakan kue":     "Rp10.000 – Rp30.000",
+            "Loyang plastik":  "Rp15.000 – Rp40.000",
+        },
+    },
+    "Produk Lainnya": {
+        "emoji": "🛒",
+        "produk": {
+            "Tikar plastik": "Rp20.000 – Rp80.000",
+            "Gayung":        "Rp5.000 – Rp15.000",
+            "Tutup saji":    "Rp10.000 – Rp25.000",
+        },
+    },
+}
 
