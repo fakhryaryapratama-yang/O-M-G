@@ -690,3 +690,17 @@ async def handle_pesan(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown",
         )
         return
+    # ══════════════════════════════════════════════════════════════════════════
+    # SALAM
+    # ══════════════════════════════════════════════════════════════════════════
+    salam_list = ["halo", "hi", "hai", "hei", "selamat", "pagi", "siang", "sore",
+                  "malam", "permisi", "hola"]
+    if any(s in lower for s in salam_list):
+        nama = update.effective_user.first_name
+        log_aktivitas(uid, uname, "salam")
+        await update.message.reply_text(
+            f"👋 Halo, *{nama}*! Ada yang bisa dibantu?",
+            parse_mode="Markdown",
+            reply_markup=kb_menu_utama(),
+        )
+        return
