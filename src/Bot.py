@@ -365,3 +365,140 @@ async def handle_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown",
             reply_markup=kb_kembali_menu(),
         )
+    # ══════════════════════════════════════════════════════════════════════════
+    # ALUR PEMESANAN
+    # ══════════════════════════════════════════════════════════════════════════
+
+    elif d == "mulai_pesan":
+        log_aktivitas(uid, uname, "mulai_pesan")
+        user_state[uid] = {"step": "pesan_pilih_kategori"}
+        await q.edit_message_text(
+            "🛒 *Pemesanan — Pilih Kategori*\n\nPilih kategori produk yang ingin dipesan:",
+            parse_mode="Markdown",
+            reply_markup=kb_kategori("pesan_kat"),
+        )
+
+    elif d.startswith("pesan_kat_"):
+        idx  = int(d.split("_")[2])
+        keys = list(KATALOG.keys())
+        if idx < len(keys):
+            kat  = keys[idx]
+            rows = get_stok_by_kategori(kat)
+            tersedia = [r for r in rows if r["qty"] > 0]
+            if not tersedia:
+                await q.edit_message_text(
+                    f"😕 Semua produk di *{kat}* sedang habis.\nPilih kategori lain:",
+                    parse_mode="Markdown",
+                    reply_markup=kb_kategori("pesan_kat"),
+                )
+                return
+            user_state[uid] = {"step": "pesan_pilih_produk", "kategori": kat}
+            # Tampilkan produk tersedia di kategori ini
+            buttons = []
+            for r in tersedia:
+                label = f"{r['produk']} | {r['harga_teks']} | Stok: {r['qty']}"
+                buttons.append([InlineKeyboardButton(label, callback_data=f"pesan_prod_{r['produk']}")])
+            buttons.append([InlineKeyboardButton("⬅️ Ganti Kategori", callback_data="mulai_pesan")])
+            await q.edit_message_text(
+                f"🛒 *{kat}*\n\nPilih produk yang ingin dipesan:",
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup(buttons),
+            )
+
+    elif d.startswith("pesan_prod_"):
+        produk_nama = d[len("pesan_prod_"):]
+        row = get_stok_produk(produk_nama)
+        if not row or row["qty"] == 0:
+            await q.edit_message_text(
+                f"❌ Stok *{produk_nama}* sudah habis.\nSilakan pilih produk lain.",
+                parse_mode="Markdown",
+                reply_markup=kb_kembali_menu(),
+            )
+            return
+        state = user_state.get(uid, {})
+        state.update({"step": "pesan_qty", "produk": produk_nama, "harga_teks": row["harga_teks"], "stok": row["qty"]})
+        user_state[uid] = state
+        await q.edit_message_text(
+            f"🛒 *{produk_nama}*\n"
+            f"💰 {row['harga_teks']}\n"
+            f"📦 Stok tersedia: *{row['qty']}*\n\n"
+            f"Ketik *jumlah* yang ingin dipesan (angka saja):",
+            parse_mode="Markdown",
+        )
+
+    elif d == "pesan_lanjut_nama":
+        # Lanjut setelah qty dikonfirmasi (dari tombol)
+        state = user_state.get(uid, {})
+        state["step"] = "pesan_nama"
+        user_state[uid] = state
+        await q.edit_message_text(
+            "📝 *Data Pemesan — Langkah 1/4*\n\nKetik *nama lengkap* kamu:",
+            parse_mode="Markdown",
+        )
+
+    elif d == "batalkan_pesan":
+        user_state.pop(uid, None)
+        await q.edit_message_text(
+            "❌ Pemesanan dibatalkan.",
+            parse_mode="Markdown",
+            reply_markup=kb_menu_utama(),
+        )
+
+    # ── Konfirmasi oleh Pemilik ──
+    elif d.startswith("terima_"):
+        pesanan_id = int(d.split("_")[1])
+        if OWNER_ID != 0 and uid != OWNER_ID:
+            await q.answer("⛔ Hanya pemilik toko yang bisa konfirmasi.", show_alert=True)
+            return
+        p = get_pesanan(pesanan_id)
+        if not p:
+            await q.edit_message_text("⚠️ Pesanan tidak ditemukan.")
+            return
+        if p["status"] != "menunggu":
+            await q.edit_message_text(
+                f"ℹ️ Pesanan #{pesanan_id} sudah diproses sebelumnya (status: {p['status']})."
+            )
+            return
+
+        update_status_pesanan(pesanan_id, STATUS_DITERIMA)
+        # Edit pesan notif pemilik
+        await q.edit_message_text(
+            format_notif_pemilik(p) + "\n\n✅ *PESANAN DITERIMA*",
+            parse_mode="Markdown",
+        )
+        # Kirim notif ke pelanggan
+        try:
+            await ctx.bot.send_message(
+                p["user_id"],
+                f"🎉 *Pesanan Kamu Diterima!*\n\n"
+                f"🛍️ *{p['produk']}* x{p['qty']}\n"
+                f"💰 {p['harga_teks']}\n\n"
+                f"Pesanan #{pesanan_id} telah dikonfirmasi oleh toko.\n"
+                f"Toko akan segera menghubungi kamu di nomor *{p['hp']}*.\n\n"
+                f"Terima kasih sudah belanja di *{INFO_TOKO['nama']}*! 🙏",
+                parse_mode="Markdown",
+            )
+        except Exception as e:
+            logger.warning(f"Gagal kirim notif ke pelanggan: {e}")
+
+    elif d.startswith("tolak_"):
+        pesanan_id = int(d.split("_")[1])
+        if OWNER_ID != 0 and uid != OWNER_ID:
+            await q.answer("⛔ Hanya pemilik toko yang bisa konfirmasi.", show_alert=True)
+            return
+        p = get_pesanan(pesanan_id)
+        if not p:
+            await q.edit_message_text("⚠️ Pesanan tidak ditemukan.")
+            return
+        if p["status"] != "menunggu":
+            await q.edit_message_text(
+                f"ℹ️ Pesanan #{pesanan_id} sudah diproses sebelumnya (status: {p['status']})."
+            )
+            return
+        # Minta pemilik ketik alasan penolakan
+        user_state[uid] = {"step": "tolak_alasan", "pesanan_id": pesanan_id}
+        await q.edit_message_text(
+            f"❌ Tolak pesanan #{pesanan_id}\n\nKetik *alasan penolakan* untuk dikirim ke pelanggan:",
+            parse_mode="Markdown",
+        )
+
