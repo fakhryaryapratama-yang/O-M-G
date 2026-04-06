@@ -35,3 +35,16 @@ from database import (
     STATUS_DITERIMA,
     STATUS_DITOLAK,
 )
+# ─── Logging ─────────────────────────────────────────────────────────────────
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    level=logging.INFO,
+    handlers=[logging.FileHandler("bot.log"), logging.StreamHandler()],
+)
+logger = logging.getLogger(__name__)
+
+# State sementara per user (alur multi-step pemesanan)
+user_state: dict = {}
+
+OWNER_ID = INFO_TOKO["pemilik_telegram_id"]
+
