@@ -545,3 +545,44 @@ async def handle_pesan(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         except Exception as e:
             logger.warning(f"Gagal kirim notif tolak ke pelanggan: {e}")
         return
+    # ══════════════════════════════════════════════════════════════════════════
+    # ALUR PEMILIK: TAMBAH STOK
+    # ══════════════════════════════════════════════════════════════════════════
+    if step == "tambahstok_nama":
+        hasil = cari_produk(teks)
+        if not hasil:
+            await update.message.reply_text(
+                f"❌ Produk *\"{teks}\"* tidak ditemukan. Coba kata lain:",
+                parse_mode="Markdown",
+            )
+            return
+        if len(hasil) == 1:
+            user_state[uid] = {"step": "tambahstok_qty", "produk": hasil[0]["produk"]}
+            await update.message.reply_text(
+                f"✅ *{hasil[0]['produk']}*\nStok saat ini: *{hasil[0]['qty']}*\n\nKetik jumlah yang ingin ditambahkan:",
+                parse_mode="Markdown",
+            )
+        else:
+            buttons = [[InlineKeyboardButton(r["produk"], callback_data=f"pesan_prod_{r['produk']}")] for r in hasil[:8]]
+            user_state[uid] = {"step": "tambahstok_nama"}
+            await update.message.reply_text(
+                f"🔍 Ditemukan {len(hasil)} produk. Pilih yang dimaksud:",
+                reply_markup=InlineKeyboardMarkup(buttons),
+            )
+        return
+
+    if step == "tambahstok_qty":
+        if not teks.isdigit() or int(teks) <= 0:
+            await update.message.reply_text("⚠️ Masukkan angka positif. Contoh: 10")
+            return
+        qty    = int(teks)
+        produk = state["produk"]
+        tambah_stok(produk, qty)
+        user_state.pop(uid, None)
+        row = get_stok_produk(produk)
+        await update.message.reply_text(
+            f"✅ Stok *{produk}* ditambah *{qty}*\nStok sekarang: *{row['qty']}*",
+            parse_mode="Markdown",
+            reply_markup=kb_menu_utama(),
+        )
+        return
