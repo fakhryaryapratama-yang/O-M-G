@@ -179,3 +179,62 @@ def format_laporan(lap: dict) -> str:
 
     return teks
 
+# ══════════════════════════════════════════════════════════════════════════════
+# COMMAND HANDLERS
+# ══════════════════════════════════════════════════════════════════════════════
+
+async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    uid   = update.effective_user.id
+    uname = update.effective_user.username
+    nama  = update.effective_user.first_name
+    log_aktivitas(uid, uname, "start")
+    await update.message.reply_text(
+        f"👋 Halo, *{nama}*! Selamat datang di\n"
+        f"🏪 *{INFO_TOKO['nama']}*\n\n"
+        f"_{INFO_TOKO['deskripsi']}_\n\n"
+        f"Pilih menu di bawah:",
+        parse_mode="Markdown",
+        reply_markup=kb_menu_utama(),
+    )
+
+
+async def cmd_help(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "📖 *Panduan Bot Toko Samira*\n\n"
+        "• 📦 *Katalog* → Produk & harga per kategori\n"
+        "• 🔍 *Cek Stok* → Ketersediaan stok real-time\n"
+        "• 🛒 *Pesan Sekarang* → Order langsung via bot\n"
+        "• 📍 *Info Toko* → Alamat & jam buka\n"
+        "• 📞 *Hubungi Pemilik* → Kontak WhatsApp\n\n"
+        "Atau ketik nama produk untuk mencari.\n\n"
+        "━━━━━━━━━━━━━━━━\n"
+        "*Perintah Pemilik:*\n"
+        "/laporan — Laporan hari ini\n"
+        "/tambahstok — Tambah stok produk",
+        parse_mode="Markdown",
+        reply_markup=kb_menu_utama(),
+    )
+
+
+async def cmd_laporan(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    uid = update.effective_user.id
+    if OWNER_ID != 0 and uid != OWNER_ID:
+        await update.message.reply_text("⛔ Fitur ini hanya untuk pemilik toko.")
+        return
+    lap = laporan_hari_ini()
+    await update.message.reply_text(
+        format_laporan(lap), parse_mode="Markdown", reply_markup=kb_kembali_menu()
+    )
+
+
+async def cmd_tambah_stok(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    uid = update.effective_user.id
+    if OWNER_ID != 0 and uid != OWNER_ID:
+        await update.message.reply_text("⛔ Fitur ini hanya untuk pemilik toko.")
+        return
+    user_state[uid] = {"step": "tambahstok_nama"}
+    await update.message.reply_text(
+        "📥 *Tambah Stok*\n\nKetik nama produk yang ingin ditambah stoknya:",
+        parse_mode="Markdown",
+    )
+
