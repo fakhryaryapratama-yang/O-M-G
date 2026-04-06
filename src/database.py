@@ -191,3 +191,36 @@ def log_aktivitas(user_id, username, aksi, detail=""):
     )
     conn.commit()
     conn.close()
+# ── LAPORAN ───────────────────────────────────────────────────────────────────
+
+def laporan_hari_ini():
+    conn = get_conn()
+    today = datetime.now().strftime("%Y-%m-%d")
+
+    total_interaksi = conn.execute(
+        "SELECT COUNT(*) as n FROM log_aktivitas WHERE waktu LIKE ?", (f"{today}%",)
+    ).fetchone()["n"]
+
+    pengguna_unik = conn.execute(
+        "SELECT COUNT(DISTINCT user_id) as n FROM log_aktivitas WHERE waktu LIKE ?", (f"{today}%",)
+    ).fetchone()["n"]
+
+    top_produk = conn.execute(
+        """SELECT detail, COUNT(*) as n FROM log_aktivitas
+           WHERE aksi='lihat_produk' AND waktu LIKE ?
+           GROUP BY detail ORDER BY n DESC LIMIT 5""",
+        (f"{today}%",),
+    ).fetchall()
+
+    pesanan_hari_ini = get_semua_pesanan_hari_ini()
+    stok_kritis = get_stok_kritis()
+
+    conn.close()
+    return {
+        "tanggal": today,
+        "total_interaksi": total_interaksi,
+        "pengguna_unik": pengguna_unik,
+        "top_produk": top_produk,
+        "pesanan": pesanan_hari_ini,
+        "stok_kritis": stok_kritis,
+    }
