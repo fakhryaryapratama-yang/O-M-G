@@ -513,3 +513,35 @@ async def handle_pesan(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     lower = teks.lower()
     state = user_state.get(uid, {})
     step  = state.get("step", "")
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # ALUR PEMILIK: TOLAK PESANAN (ketik alasan)
+    # ══════════════════════════════════════════════════════════════════════════
+    if step == "tolak_alasan":
+        pesanan_id = state["pesanan_id"]
+        p = get_pesanan(pesanan_id)
+        user_state.pop(uid, None)
+
+        update_status_pesanan(pesanan_id, STATUS_DITOLAK, teks)
+        # Kembalikan stok
+        kembalikan_stok(p["produk"], p["qty"])
+
+        await update.message.reply_text(
+            f"✅ Pesanan #{pesanan_id} ditolak.\nStok *{p['produk']}* dikembalikan +{p['qty']}.",
+            parse_mode="Markdown",
+        )
+        # Notif ke pelanggan
+        try:
+            await ctx.bot.send_message(
+                p["user_id"],
+                f"😔 *Pesanan Kamu Ditolak*\n\n"
+                f"🛍️ *{p['produk']}* x{p['qty']}\n\n"
+                f"📝 *Alasan dari toko:*\n_{teks}_\n\n"
+                f"Silakan hubungi kami untuk informasi lebih lanjut:\n"
+                f"📱 {INFO_TOKO['whatsapp']}",
+                parse_mode="Markdown",
+                reply_markup=kb_menu_utama(),
+            )
+        except Exception as e:
+            logger.warning(f"Gagal kirim notif tolak ke pelanggan: {e}")
+        return
