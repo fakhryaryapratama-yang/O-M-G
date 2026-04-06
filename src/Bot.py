@@ -809,3 +809,75 @@ async def handle_konfirmasi_pesan(update: Update, ctx: ContextTypes.DEFAULT_TYPE
     else:
         logger.warning("OWNER_ID belum diset di data.py — notif pesanan tidak dikirim.")
 
+# ══════════════════════════════════════════════════════════════════════════════
+# REKAP OTOMATIS
+# ══════════════════════════════════════════════════════════════════════════════
+
+async def kirim_rekap_harian(ctx: ContextTypes.DEFAULT_TYPE):
+    if OWNER_ID == 0:
+        return
+    lap = laporan_hari_ini()
+    try:
+        await ctx.bot.send_message(
+            OWNER_ID,
+            f"🌙 *Rekap Harian Otomatis*\n\n" + format_laporan(lap),
+            parse_mode="Markdown",
+        )
+    except Exception as e:
+        logger.error(f"Gagal kirim rekap: {e}")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ERROR HANDLER
+# ══════════════════════════════════════════════════════════════════════════════
+
+async def error_handler(update: object, ctx: ContextTypes.DEFAULT_TYPE):
+    logger.error("Exception:", exc_info=ctx.error)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# MAIN
+# ══════════════════════════════════════════════════════════════════════════════
+
+async def main():
+    init_db()
+    logger.info("Database siap.")
+
+    # ⚠️token dari @BotFather
+    TOKEN = "8768419726:AAF6q-8u2_fK388lX-CMyHIjcqkkgq2D6FY"
+
+    app = Application.builder().token(TOKEN).build()
+
+    app.add_handler(CommandHandler("start",      cmd_start))
+    app.add_handler(CommandHandler("help",       cmd_help))
+    app.add_handler(CommandHandler("laporan",    cmd_laporan))
+    app.add_handler(CommandHandler("tambahstok", cmd_tambah_stok))
+
+    # Handler konfirmasi pesanan harus didaftarkan sebelum handle_callback umum
+    app.add_handler(CallbackQueryHandler(handle_konfirmasi_pesan, pattern="^konfirmasi_pesan$"))
+    app.add_handler(CallbackQueryHandler(handle_callback))
+
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_pesan))
+
+    # Rekap harian otomatis jam 20:00
+    app.job_queue.run_daily(
+        kirim_rekap_harian,
+        time=dtime(hour=20, minute=0),
+        name="rekap_harian",
+    )
+
+    app.add_error_handler(error_handler)
+
+    logger.info("Bot Toko Samira aktif...")
+
+    async with app:
+        await app.start()
+        await app.updater.start_polling(allowed_updates=Update.ALL_TYPES)
+        logger.info("Tekan Ctrl+C untuk berhenti.")
+        await asyncio.Event().wait()
+        await app.updater.stop()
+        await app.stop()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
