@@ -502,3 +502,14 @@ async def handle_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown",
         )
 
+# ══════════════════════════════════════════════════════════════════════════════
+# MESSAGE HANDLER
+# ══════════════════════════════════════════════════════════════════════════════
+
+async def handle_pesan(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    teks  = update.message.text.strip()
+    uid   = update.effective_user.id
+    uname = update.effective_user.username
+    lower = teks.lower()
+    state = user_state.get(uid, {})
+    step  = state.get("step", "")
