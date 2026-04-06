@@ -586,3 +586,107 @@ async def handle_pesan(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             reply_markup=kb_menu_utama(),
         )
         return
+    # ══════════════════════════════════════════════════════════════════════════
+    # ALUR PELANGGAN: PEMESANAN MULTI-STEP
+    # ══════════════════════════════════════════════════════════════════════════
+
+    if step == "pesan_qty":
+        if not teks.isdigit() or int(teks) <= 0:
+            await update.message.reply_text("⚠️ Masukkan angka positif. Contoh: 2")
+            return
+        qty   = int(teks)
+        stok  = state.get("stok", 0)
+        if qty > stok:
+            await update.message.reply_text(
+                f"❌ Stok hanya tersisa *{stok}*. Masukkan jumlah yang sesuai:",
+                parse_mode="Markdown",
+            )
+            return
+        state["qty"]  = qty
+        state["step"] = "pesan_nama"
+        user_state[uid] = state
+        await update.message.reply_text(
+            f"✅ *{state['produk']}* x{qty}\n\n"
+            f"📝 *Data Pemesan — Langkah 1/4*\n\nKetik *nama lengkap* kamu:",
+            parse_mode="Markdown",
+        )
+        return
+
+    if step == "pesan_nama":
+        if len(teks) < 2:
+            await update.message.reply_text("⚠️ Nama terlalu pendek. Masukkan nama lengkap:")
+            return
+        state["nama"] = teks
+        state["step"] = "pesan_hp"
+        user_state[uid] = state
+        await update.message.reply_text(
+            "📝 *Data Pemesan — Langkah 2/4*\n\nKetik *nomor HP/WA* kamu:",
+            parse_mode="Markdown",
+        )
+        return
+
+    if step == "pesan_hp":
+        # Validasi sederhana: minimal 9 digit angka
+        bersih = teks.replace("-", "").replace(" ", "")
+        if not bersih.lstrip("+").isdigit() or len(bersih) < 9:
+            await update.message.reply_text("⚠️ Nomor HP tidak valid. Contoh: 08123456789")
+            return
+        state["hp"]   = teks
+        state["step"] = "pesan_alamat"
+        user_state[uid] = state
+        await update.message.reply_text(
+            "📝 *Data Pemesan — Langkah 3/4*\n\nKetik *alamat lengkap* pengiriman:",
+            parse_mode="Markdown",
+        )
+        return
+
+    if step == "pesan_alamat":
+        if len(teks) < 5:
+            await update.message.reply_text("⚠️ Alamat terlalu pendek. Masukkan alamat lengkap:")
+            return
+        state["alamat"] = teks
+        state["step"]   = "pesan_catatan"
+        user_state[uid] = state
+        await update.message.reply_text(
+            "📝 *Data Pemesan — Langkah 4/4*\n\nKetik *catatan tambahan* (atau ketik *-* jika tidak ada):",
+            parse_mode="Markdown",
+        )
+        return
+
+    if step == "pesan_catatan":
+        state["catatan"] = "" if teks == "-" else teks
+        state["step"]    = "pesan_konfirmasi"
+        user_state[uid]  = state
+
+        ringkasan = (
+            f"📋 *Ringkasan Pesanan*\n"
+            f"{'─'*30}\n"
+            f"🛍️ *Produk:* {state['produk']}\n"
+            f"💰 *Harga:* {state['harga_teks']}\n"
+            f"🔢 *Jumlah:* {state['qty']}\n\n"
+            f"👤 *Nama:* {state['nama']}\n"
+            f"📱 *HP/WA:* {state['hp']}\n"
+            f"📍 *Alamat:* {state['alamat']}\n"
+            f"📝 *Catatan:* {state['catatan'] or '-'}\n\n"
+            f"Apakah data sudah benar?"
+        )
+        await update.message.reply_text(
+            ringkasan,
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([
+                [
+                    InlineKeyboardButton("✅ Ya, Pesan Sekarang!", callback_data="konfirmasi_pesan"),
+                    InlineKeyboardButton("❌ Batalkan",            callback_data="batalkan_pesan"),
+                ]
+            ]),
+        )
+        return
+
+    # ── Konfirmasi akhir pesanan ──
+    # (ditangani via callback, tapi jaga-jaga ada state nyasar)
+    if step == "pesan_konfirmasi":
+        await update.message.reply_text(
+            "Silakan tekan tombol *Ya, Pesan Sekarang!* atau *Batalkan* di atas.",
+            parse_mode="Markdown",
+        )
+        return
