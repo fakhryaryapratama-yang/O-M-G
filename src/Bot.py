@@ -704,3 +704,30 @@ async def handle_pesan(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             reply_markup=kb_menu_utama(),
         )
         return
+    # ══════════════════════════════════════════════════════════════════════════
+    # PENCARIAN PRODUK
+    # ══════════════════════════════════════════════════════════════════════════
+    hasil = cari_produk(lower)
+    log_aktivitas(uid, uname, "lihat_produk", teks)
+
+    if hasil:
+        pesan = f"🔍 *Hasil: \"{teks}\"*\n{'─'*30}\n\n"
+        for r in hasil[:8]:
+            pesan += f"• *{r['produk']}*\n"
+            pesan += f"  📂 {r['kategori']}   💰 {r['harga_teks']}   {label_stok(r['qty'])}\n\n"
+        if len(hasil) > 8:
+            pesan += f"_...dan {len(hasil)-8} produk lainnya_\n\n"
+        await update.message.reply_text(
+            pesan, parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🛒 Pesan Sekarang", callback_data="mulai_pesan")],
+                [InlineKeyboardButton("🏠 Menu Utama",     callback_data="menu_utama")],
+            ]),
+        )
+    else:
+        await update.message.reply_text(
+            f"😕 Produk *\"{teks}\"* tidak ditemukan.\nCoba kata lain:",
+            parse_mode="Markdown",
+            reply_markup=kb_menu_utama(),
+        )
+
