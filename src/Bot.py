@@ -731,3 +731,81 @@ async def handle_pesan(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             reply_markup=kb_menu_utama(),
         )
 
+# ══════════════════════════════════════════════════════════════════════════════
+# KONFIRMASI PESANAN (callback khusus)
+# ══════════════════════════════════════════════════════════════════════════════
+
+async def handle_konfirmasi_pesan(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Dipanggil saat pelanggan tekan 'Ya, Pesan Sekarang!'"""
+    q     = update.callback_query
+    await q.answer()
+    uid   = q.from_user.id
+    uname = q.from_user.username
+    state = user_state.get(uid, {})
+
+    if state.get("step") != "pesan_konfirmasi":
+        await q.edit_message_text(
+            "⚠️ Sesi pemesanan tidak ditemukan. Mulai ulang:",
+            reply_markup=kb_menu_utama(),
+        )
+        return
+
+    produk     = state["produk"]
+    qty        = state["qty"]
+    harga_teks = state["harga_teks"]
+
+    # Kurangi stok dulu
+    berhasil = kurangi_stok(produk, qty)
+    if not berhasil:
+        user_state.pop(uid, None)
+        row  = get_stok_produk(produk)
+        sisa = row["qty"] if row else 0
+        await q.edit_message_text(
+            f"❌ Maaf, stok *{produk}* tidak mencukupi.\n"
+            f"Stok tersisa: *{sisa}*\n\nSilakan pilih produk lain.",
+            parse_mode="Markdown",
+            reply_markup=kb_menu_utama(),
+        )
+        return
+
+    # Simpan pesanan ke database
+    pesanan_id = buat_pesanan(
+        user_id    = uid,
+        username   = uname,
+        nama       = state["nama"],
+        hp         = state["hp"],
+        alamat     = state["alamat"],
+        catatan    = state.get("catatan", ""),
+        produk     = produk,
+        harga_teks = harga_teks,
+        qty        = qty,
+    )
+    user_state.pop(uid, None)
+    log_aktivitas(uid, uname, "pesan", f"#{pesanan_id} {produk} x{qty}")
+
+    # Konfirmasi ke pelanggan
+    await q.edit_message_text(
+        f"✅ *Pesanan Berhasil Dikirim!*\n\n"
+        f"📋 No. Pesanan: *#{pesanan_id}*\n"
+        f"🛍️ *{produk}* x{qty}\n\n"
+        f"Pesanan kamu sedang diproses oleh toko.\n"
+        f"Kamu akan mendapat notifikasi setelah dikonfirmasi. ⏳",
+        parse_mode="Markdown",
+        reply_markup=kb_menu_utama(),
+    )
+
+    # Notifikasi ke pemilik
+    if OWNER_ID != 0:
+        p = get_pesanan(pesanan_id)
+        try:
+            await ctx.bot.send_message(
+                OWNER_ID,
+                format_notif_pemilik(p),
+                parse_mode="Markdown",
+                reply_markup=kb_konfirmasi_pemilik(pesanan_id),
+            )
+        except Exception as e:
+            logger.error(f"Gagal kirim notif ke pemilik: {e}")
+    else:
+        logger.warning("OWNER_ID belum diset di data.py — notif pesanan tidak dikirim.")
+
