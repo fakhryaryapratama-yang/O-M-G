@@ -77,7 +77,6 @@ def init_db():
         conn.commit()
 
     conn.close()
-# ── STOK ────────────────────────────────────────────────────────────────
 
 def get_stok_by_kategori(kategori: str):
     conn = get_conn()
