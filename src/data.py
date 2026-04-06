@@ -102,4 +102,41 @@ KATALOG = {
         },
     },
 }
+# ─── Stok Awal ───────────────────────────────────────────────────────────────
+# Dipakai SEKALI saat database pertama kali dibuat.
+STOK_AWAL = {
+    "Ember & Baskom": {
+        "Ember plastik kecil": 20, "Ember besar (dengan gagang)": 15,
+        "Baskom kecil": 25, "Baskom besar": 10,
+    },
+    "Botol & Tempat Minum": {
+        "Botol minum anak": 30, "Botol plastik dewasa": 20, "Toples minum/set botol": 15,
+    },
+    "Kotak Makan & Wadah": {
+        "Kotak makan kecil": 25, "Lunch box sekat": 20,
+        "Wadah makanan (container)": 20, "Set kotak makan": 10,
+    },
+    "Toples & Wadah Bumbu": {
+        "Toples kecil": 30, "Toples sedang": 20, "Toples besar": 15, "Wadah bumbu set": 10,
+    },
+    "Peralatan Dapur": {
+        "Corong plastik": 20, "Saringan plastik": 20,
+        "Parutan": 15, "Sendok sayur/alat dapur": 25,
+    },
+    "Peralatan Makan": {
+        "Piring plastik": 40, "Gelas plastik": 40, "Sendok & garpu": 50, "Set alat makan": 15,
+    },
+    "Peralatan Rumah Tangga": {
+        "Keranjang plastik": 20, "Tempat sampah": 15, "Rak plastik kecil": 10,
+    },
+    "Plastik & Kemasan": {
+        "Plastik kiloan": 20, "Kantong kresek": 30, "Mika makanan": 25, "Styrofoam": 20,
+    },
+    "Cetakan & Loyang": {
+        "Cetakan es batu": 20, "Cetakan kue": 15, "Loyang plastik": 15,
+    },
+    "Produk Lainnya": {
+        "Tikar plastik": 10, "Gayung": 25, "Tutup saji": 20,
+    },
+}
 
