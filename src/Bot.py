@@ -35,6 +35,7 @@ from database import (
     STATUS_DITERIMA,
     STATUS_DITOLAK,
 )
+
 # ─── Logging ─────────────────────────────────────────────────────────────────
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -47,6 +48,7 @@ logger = logging.getLogger(__name__)
 user_state: dict = {}
 
 OWNER_ID = INFO_TOKO["pemilik_telegram_id"]
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # KEYBOARD BUILDERS
@@ -101,6 +103,7 @@ def kb_konfirmasi_pemilik(pesanan_id: int) -> InlineKeyboardMarkup:
             InlineKeyboardButton("❌ Tolak Pesanan",  callback_data=f"tolak_{pesanan_id}"),
         ]
     ])
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # HELPER FORMAT
@@ -179,6 +182,7 @@ def format_laporan(lap: dict) -> str:
 
     return teks
 
+
 # ══════════════════════════════════════════════════════════════════════════════
 # COMMAND HANDLERS
 # ══════════════════════════════════════════════════════════════════════════════
@@ -237,6 +241,7 @@ async def cmd_tambah_stok(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         "📥 *Tambah Stok*\n\nKetik nama produk yang ingin ditambah stoknya:",
         parse_mode="Markdown",
     )
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # CALLBACK HANDLER
@@ -365,6 +370,7 @@ async def handle_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown",
             reply_markup=kb_kembali_menu(),
         )
+
     # ══════════════════════════════════════════════════════════════════════════
     # ALUR PEMESANAN
     # ══════════════════════════════════════════════════════════════════════════
@@ -502,6 +508,7 @@ async def handle_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown",
         )
 
+
 # ══════════════════════════════════════════════════════════════════════════════
 # MESSAGE HANDLER
 # ══════════════════════════════════════════════════════════════════════════════
@@ -545,6 +552,7 @@ async def handle_pesan(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         except Exception as e:
             logger.warning(f"Gagal kirim notif tolak ke pelanggan: {e}")
         return
+
     # ══════════════════════════════════════════════════════════════════════════
     # ALUR PEMILIK: TAMBAH STOK
     # ══════════════════════════════════════════════════════════════════════════
@@ -586,6 +594,7 @@ async def handle_pesan(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             reply_markup=kb_menu_utama(),
         )
         return
+
     # ══════════════════════════════════════════════════════════════════════════
     # ALUR PELANGGAN: PEMESANAN MULTI-STEP
     # ══════════════════════════════════════════════════════════════════════════
@@ -690,6 +699,7 @@ async def handle_pesan(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown",
         )
         return
+
     # ══════════════════════════════════════════════════════════════════════════
     # SALAM
     # ══════════════════════════════════════════════════════════════════════════
@@ -704,6 +714,7 @@ async def handle_pesan(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             reply_markup=kb_menu_utama(),
         )
         return
+
     # ══════════════════════════════════════════════════════════════════════════
     # PENCARIAN PRODUK
     # ══════════════════════════════════════════════════════════════════════════
@@ -730,6 +741,7 @@ async def handle_pesan(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown",
             reply_markup=kb_menu_utama(),
         )
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # KONFIRMASI PESANAN (callback khusus)
@@ -808,6 +820,7 @@ async def handle_konfirmasi_pesan(update: Update, ctx: ContextTypes.DEFAULT_TYPE
             logger.error(f"Gagal kirim notif ke pemilik: {e}")
     else:
         logger.warning("OWNER_ID belum diset di data.py — notif pesanan tidak dikirim.")
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # REKAP OTOMATIS
