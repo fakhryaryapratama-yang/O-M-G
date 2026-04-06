@@ -11,7 +11,7 @@ INFO_TOKO = {
     "alamat": "Dusun III, Kemiri Lor, Kec. Kemiri, Kab. Purworejo, Jawa Tengah 54262",
     "jam_buka": "Senin – Sabtu: 07.00 – 20.00\nMinggu: 08.00 – 17.00",
     "whatsapp": "082XXXXXXXXX", 
-    "pemilik_telegram_id": 6267661434,
+    "pemilik_telegram_id": ...,  # Ganti dengan Telegram ID pemilik untuk notifikasi pesanan baru
 }
 # ─── Katalog Produk ──────────────────────────────────────────────────────────
 KATALOG = {
