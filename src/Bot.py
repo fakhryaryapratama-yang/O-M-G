@@ -238,3 +238,130 @@ async def cmd_tambah_stok(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown",
     )
 
+# ══════════════════════════════════════════════════════════════════════════════
+# CALLBACK HANDLER
+# ══════════════════════════════════════════════════════════════════════════════
+
+async def handle_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    q     = update.callback_query
+    await q.answer()
+    d     = q.data
+    uid   = q.from_user.id
+    uname = q.from_user.username
+
+    # ── Menu Utama ──
+    if d == "menu_utama":
+        user_state.pop(uid, None)  # Reset state
+        await q.edit_message_text(
+            "🏪 *Menu Utama Toko Samira*\n\nPilih yang kamu butuhkan:",
+            parse_mode="Markdown",
+            reply_markup=kb_menu_utama(),
+        )
+
+    # ── Katalog ──
+    elif d == "katalog":
+        log_aktivitas(uid, uname, "katalog")
+        await q.edit_message_text(
+            "📦 *Pilih Kategori Produk:*",
+            parse_mode="Markdown",
+            reply_markup=kb_kategori("kat"),
+        )
+
+    elif d.startswith("kat_"):
+        idx  = int(d.split("_")[1])
+        keys = list(KATALOG.keys())
+        if idx < len(keys):
+            kat = keys[idx]
+            log_aktivitas(uid, uname, "lihat_produk", kat)
+            await q.edit_message_text(
+                format_detail_kategori(kat),
+                parse_mode="Markdown",
+                reply_markup=kb_kembali_katalog(),
+            )
+
+    # ── Cek Stok ──
+    elif d == "cek_stok":
+        log_aktivitas(uid, uname, "cek_stok")
+        keys = list(KATALOG.keys())
+        buttons = [
+            InlineKeyboardButton(
+                f"{KATALOG[k]['emoji']} {k}", callback_data=f"stok_kat_{i}"
+            )
+            for i, k in enumerate(keys)
+        ]
+        rows_kb = [buttons[i:i+2] for i in range(0, len(buttons), 2)]
+        rows_kb.append([InlineKeyboardButton("🏠 Menu Utama", callback_data="menu_utama")])
+        await q.edit_message_text(
+            "🔍 *Cek Stok — Pilih Kategori:*\n\nPilih kategori untuk melihat detail stok tiap produk.",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(rows_kb),
+        )
+
+    elif d.startswith("stok_kat_"):
+        idx  = int(d.split("_")[2])
+        keys = list(KATALOG.keys())
+        if idx < len(keys):
+            kat_nama  = keys[idx]
+            emoji     = KATALOG[kat_nama]["emoji"]
+            rows_stok = get_stok_by_kategori(kat_nama)
+
+            aman     = [r for r in rows_stok if r["qty"] > 3]
+            terbatas = [r for r in rows_stok if 0 < r["qty"] <= 3]
+            habis    = [r for r in rows_stok if r["qty"] == 0]
+
+            teks = f"{emoji} *{kat_nama}*\n" + "─" * 30 + "\n\n"
+
+            teks += "✅ *Aman:*\n"
+            if aman:
+                for r in aman:
+                    teks += f"  • {r['produk']} — stok: {r['qty']}\n"
+            else:
+                teks += "  _tidak ada_\n"
+
+            teks += "\n⚠️ *Terbatas (sisa ≤ 3):*\n"
+            if terbatas:
+                for r in terbatas:
+                    teks += f"  • {r['produk']} — sisa: {r['qty']}\n"
+            else:
+                teks += "  _tidak ada_\n"
+
+            teks += "\n❌ *Habis:*\n"
+            if habis:
+                for r in habis:
+                    teks += f"  • {r['produk']}\n"
+            else:
+                teks += "  _tidak ada_\n"
+
+            await q.edit_message_text(
+                teks,
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("⬅️ Pilih Kategori Lain", callback_data="cek_stok")],
+                    [InlineKeyboardButton("🏠 Menu Utama",           callback_data="menu_utama")],
+                ]),
+            )
+
+    # ── Info Toko ──
+    elif d == "info_toko":
+        log_aktivitas(uid, uname, "info_toko")
+        await q.edit_message_text(
+            f"📍 *Informasi Toko*\n\n"
+            f"🏪 *Nama:* {INFO_TOKO['nama']}\n"
+            f"👤 *Pemilik:* {INFO_TOKO['pemilik']}\n\n"
+            f"📌 *Alamat:*\n{INFO_TOKO['alamat']}\n\n"
+            f"🕐 *Jam Buka:*\n{INFO_TOKO['jam_buka']}",
+            parse_mode="Markdown",
+            reply_markup=kb_kembali_menu(),
+        )
+
+    # ── Hubungi Pemilik ──
+    elif d == "hubungi":
+        log_aktivitas(uid, uname, "hubungi")
+        await q.edit_message_text(
+            f"📞 *Hubungi Kami*\n\n"
+            f"👤 *{INFO_TOKO['pemilik']}*\n"
+            f"📱 WhatsApp: {INFO_TOKO['whatsapp']}\n\n"
+            f"_Kami siap membantu!_ 😊",
+            parse_mode="Markdown",
+            reply_markup=kb_kembali_menu(),
+        )
