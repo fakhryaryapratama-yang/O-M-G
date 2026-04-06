@@ -857,7 +857,7 @@ async def main():
     logger.info("Database siap.")
 
     # ⚠️token dari @BotFather
-    TOKEN = "8768419726:AAF6q-8u2_fK388lX-CMyHIjcqkkgq2D6FY"
+    TOKEN = "........."
 
     app = Application.builder().token(TOKEN).build()
 
