@@ -4,6 +4,8 @@ Fitur: Menu | Cek Stok | Pemesanan via Bot | Konfirmasi Pemilik | Laporan
 """
 
 import asyncio
+import os
+from dotenv import load_dotenv
 import logging
 from datetime import time as dtime
 
@@ -857,7 +859,9 @@ async def main():
     logger.info("Database siap.")
 
     # ⚠️token dari @BotFather
-    TOKEN = "........."
+
+    load_dotenv()
+    TOKEN = os.getenv("BOT_TOKEN")
 
     app = Application.builder().token(TOKEN).build()
 
