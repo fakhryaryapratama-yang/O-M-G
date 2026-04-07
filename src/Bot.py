@@ -857,7 +857,10 @@ async def main():
     logger.info("Database siap.")
 
     # ⚠️token dari @BotFather
-    TOKEN = "8768419726:AAF6q-8u2_fK388lX-CMyHIjcqkkgq2D6FY"
+
+
+    load_dotenv()
+    TOKEN = os.getenv("BOT_TOKEN")
 
     app = Application.builder().token(TOKEN).build()
 
