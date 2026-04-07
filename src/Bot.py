@@ -861,7 +861,7 @@ async def main():
     # ⚠️token dari @BotFather
 
     load_dotenv()
-    TOKEN = os.getenv("BOT_TOKEN")
+    TOKEN = os.getenv("TOKEN")
 
     app = Application.builder().token(TOKEN).build()
 
