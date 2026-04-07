@@ -1,7 +1,7 @@
 # Kredensial — jangan pernah di-commit
 .env
 
-.vscode
+.vscode/
 
 # Database lokal
 toko_samira.db
