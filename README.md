@@ -2,8 +2,8 @@
 ## 👥 Kelompok: O. M. G.
 ### Anggota:
 1. Fadhil
-2. Muhammad Faris Mubaroq
-3. Muhammad Fakhry Arya Pratama
+2. Faris Ahmad Mubaraq
+3. Fakhry Arya Pratama
 
 ---
 
@@ -77,7 +77,7 @@ python-dotenv
 
 **1. Clone repository**
 ```bash
-git clone https://github.com/username/O-M-G.git
+git clone https://github.com/fakhryaryapratama-yang/O-M-G.git
 cd O-M-G
 ```
 
