@@ -1,3 +1,6 @@
+import os
+from dotenv import load_dotenv
+
 """
 Data Toko Samira
 Edit file ini untuk mengubah info toko, katalog produk, dan stok awal.
@@ -9,9 +12,10 @@ INFO_TOKO = {
     "pemilik": "Bapak Sigit Winaryo",
     "deskripsi": "Toko perlengkapan rumah tangga lengkap & harga terjangkau",
     "alamat": "Dusun III, Kemiri Lor, Kec. Kemiri, Kab. Purworejo, Jawa Tengah 54262",
+    "maps": "https://goo.gl/maps/xxxxxxx",  # ← Ganti dengan link Google Maps asli
     "jam_buka": "Senin – Sabtu: 07.00 – 20.00\nMinggu: 08.00 – 17.00",
     "whatsapp": "082XXXXXXXXX",    # ← Ganti nomor asli
-    "pemilik_telegram_id": 6267661434,      # ← Ganti dengan Telegram ID pemilik (angka)
+    "pemilik_telegram_id": os.getenv("id"),      # ← Ganti dengan Telegram ID pemilik (angka)
                                    #   Cara cek: kirim pesan ke @userinfobot
 }
 
