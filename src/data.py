@@ -1,9 +1,12 @@
 import os
 from dotenv import load_dotenv
+import re
+
+load_dotenv()
 
 """
 Data Toko Samira
-Edit file ini untuk mengubah info toko, katalog produk, dan stok awal.
+Edit file ini untuk mengubah info toko, katalog produk, stok awal, dan pembayaran.
 """
 
 # ─── Info Toko ───────────────────────────────────────────────────────────────
@@ -14,9 +17,22 @@ INFO_TOKO = {
     "alamat": "Dusun III, Kemiri Lor, Kec. Kemiri, Kab. Purworejo, Jawa Tengah 54262",
     "maps": "https://goo.gl/maps/xxxxxxx",  # ← Ganti dengan link Google Maps asli
     "jam_buka": "Senin – Sabtu: 07.00 – 20.00\nMinggu: 08.00 – 17.00",
-    "whatsapp": "082XXXXXXXXX",    # ← Ganti nomor asli
-    "pemilik_telegram_id": os.getenv("id"),      # ← Ganti dengan Telegram ID pemilik (angka)
-                                   #   Cara cek: kirim pesan ke @userinfobot
+    "whatsapp": "082XXXXXXXXX",             # ← Ganti nomor asli
+    "ID": int(os.getenv("ID") or 0),      # ← Ganti dengan Telegram ID pemilik (angka)
+}
+
+# ─── Konfigurasi Pembayaran ──────────────────────────────────────────────────
+# QRIS: isi dengan string ID merchant / nomor rekening QRIS kamu.
+# String ini yang akan di-encode menjadi QR code dan dikirim ke pelanggan.
+# Contoh: "00020101021226570011ID.CO.BRI.WWW01189360050300000000000220303UMI..."
+#
+# Tenor paylater: daftar pilihan cicilan dalam bulan.
+# paylater_max: batas nominal maksimal paylater (0 = tidak ada batas).
+
+PEMBAYARAN = {
+    "qris_id":        "QRIS_ID_TOKO_SAMIRA",  # ← Ganti dengan ID QRIS asli
+    "paylater_max":   0,
+    "paylater_tenor": [1, 2, 3],
 }
 
 # ─── Katalog Produk ──────────────────────────────────────────────────────────
@@ -110,7 +126,6 @@ KATALOG = {
 }
 
 # ─── Stok Awal ───────────────────────────────────────────────────────────────
-# Dipakai SEKALI saat database pertama kali dibuat.
 STOK_AWAL = {
     "Ember & Baskom": {
         "Ember plastik kecil": 20, "Ember besar (dengan gagang)": 15,
@@ -146,3 +161,15 @@ STOK_AWAL = {
         "Tikar plastik": 10, "Gayung": 25, "Tutup saji": 20,
     },
 }
+
+
+# ─── Helper: parse harga dari string ─────────────────────────────────────────
+def parse_harga(harga_teks: str) -> int:
+    """Ambil angka dari string harga. Contoh: 'Rp8.000' → 8000"""
+    angka = re.sub(r"[^\d]", "", harga_teks.split("/")[0])
+    return int(angka) if angka else 0
+
+
+def format_rupiah(nominal: int) -> str:
+    """Format angka ke string rupiah. Contoh: 16000 → 'Rp16.000'"""
+    return f"Rp{nominal:,.0f}".replace(",", ".")

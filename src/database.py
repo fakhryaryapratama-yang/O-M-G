@@ -1,6 +1,6 @@
 """
 Database handler — SQLite
-Tabel: stok, pesanan, log_aktivitas, log_transaksi
+Tabel: stok, pesanan, log_aktivitas
 """
 
 import sqlite3
@@ -8,9 +8,13 @@ from datetime import datetime
 
 DB_PATH = "toko_samira.db"
 
-STATUS_MENUNGGU  = "menunggu"
-STATUS_DITERIMA  = "diterima"
-STATUS_DITOLAK   = "ditolak"
+STATUS_MENUNGGU = "menunggu"
+STATUS_DITERIMA = "diterima"
+STATUS_DITOLAK  = "ditolak"
+
+BAYAR_CASH     = "cash"
+BAYAR_QRIS     = "qris"
+BAYAR_PAYLATER = "paylater"
 
 
 def get_conn():
@@ -36,21 +40,37 @@ def init_db():
 
     c.execute("""
         CREATE TABLE IF NOT EXISTS pesanan (
-            id           INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id      INTEGER NOT NULL,
-            username     TEXT,
-            nama         TEXT NOT NULL,
-            hp           TEXT NOT NULL,
-            alamat       TEXT NOT NULL,
-            catatan      TEXT DEFAULT '',
-            produk       TEXT NOT NULL,
-            harga_teks   TEXT NOT NULL,
-            qty          INTEGER NOT NULL,
-            status       TEXT NOT NULL DEFAULT 'menunggu',
-            pesan_tolak  TEXT DEFAULT '',
-            waktu        TEXT DEFAULT (datetime('now','localtime'))
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id         INTEGER NOT NULL,
+            username        TEXT,
+            nama            TEXT NOT NULL,
+            hp              TEXT NOT NULL,
+            alamat          TEXT NOT NULL,
+            catatan         TEXT    DEFAULT '',
+            produk          TEXT    NOT NULL,
+            harga_teks      TEXT    NOT NULL,
+            qty             INTEGER NOT NULL,
+            total_harga     INTEGER NOT NULL DEFAULT 0,
+            metode_bayar    TEXT    NOT NULL DEFAULT 'cash',
+            tenor_bulan     INTEGER DEFAULT 0,
+            cicilan_per_bln INTEGER DEFAULT 0,
+            status          TEXT    NOT NULL DEFAULT 'menunggu',
+            pesan_tolak     TEXT    DEFAULT '',
+            waktu           TEXT    DEFAULT (datetime('now','localtime'))
         )
     """)
+
+    # Migrasi: tambah kolom baru jika tabel sudah ada tapi belum punya kolom pembayaran
+    kolom_baru = {
+        "total_harga":     "INTEGER NOT NULL DEFAULT 0",
+        "metode_bayar":    "TEXT NOT NULL DEFAULT 'cash'",
+        "tenor_bulan":     "INTEGER DEFAULT 0",
+        "cicilan_per_bln": "INTEGER DEFAULT 0",
+    }
+    existing = [row[1] for row in c.execute("PRAGMA table_info(pesanan)").fetchall()]
+    for col, typedef in kolom_baru.items():
+        if col not in existing:
+            c.execute(f"ALTER TABLE pesanan ADD COLUMN {col} {typedef}")
 
     c.execute("""
         CREATE TABLE IF NOT EXISTS log_aktivitas (
@@ -119,7 +139,6 @@ def kurangi_stok(produk: str, qty: int) -> bool:
 
 
 def kembalikan_stok(produk: str, qty: int):
-    """Kembalikan stok jika pesanan ditolak."""
     conn = get_conn()
     conn.execute("UPDATE stok SET qty = qty + ? WHERE produk = ?", (qty, produk))
     conn.commit()
@@ -145,13 +164,23 @@ def cari_produk(keyword: str):
 
 # ── PESANAN ──────────────────────────────────────────────────────────────────
 
-def buat_pesanan(user_id, username, nama, hp, alamat, catatan, produk, harga_teks, qty) -> int:
-    """Simpan pesanan baru. Return id pesanan."""
+def buat_pesanan(
+    user_id, username, nama, hp, alamat, catatan,
+    produk, harga_teks, qty, total_harga,
+    metode_bayar="cash", tenor_bulan=0, cicilan_per_bln=0
+) -> int:
     conn = get_conn()
     cur = conn.execute(
-        """INSERT INTO pesanan (user_id, username, nama, hp, alamat, catatan, produk, harga_teks, qty, status)
-           VALUES (?,?,?,?,?,?,?,?,?,?)""",
-        (user_id, username or "unknown", nama, hp, alamat, catatan, produk, harga_teks, qty, STATUS_MENUNGGU),
+        """INSERT INTO pesanan
+           (user_id, username, nama, hp, alamat, catatan,
+            produk, harga_teks, qty, total_harga,
+            metode_bayar, tenor_bulan, cicilan_per_bln, status)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+        (
+            user_id, username or "unknown", nama, hp, alamat, catatan,
+            produk, harga_teks, qty, total_harga,
+            metode_bayar, tenor_bulan, cicilan_per_bln, STATUS_MENUNGGU,
+        ),
     )
     pesanan_id = cur.lastrowid
     conn.commit()
@@ -231,4 +260,4 @@ def laporan_hari_ini():
         "top_produk": top_produk,
         "pesanan": pesanan_hari_ini,
         "stok_kritis": stok_kritis,
-    }
+        }
