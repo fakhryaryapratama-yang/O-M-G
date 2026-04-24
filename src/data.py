@@ -23,7 +23,6 @@ INFO_TOKO = {
 
 # ─── Konfigurasi Pembayaran ──────────────────────────────────────────────────
 # QRIS: isi dengan string ID merchant / nomor rekening QRIS kamu.
-# String ini yang akan di-encode menjadi QR code dan dikirim ke pelanggan.
 # Contoh: "00020101021226570011ID.CO.BRI.WWW01189360050300000000000220303UMI..."
 #
 # Tenor paylater: daftar pilihan cicilan dalam bulan.
@@ -32,7 +31,7 @@ INFO_TOKO = {
 PEMBAYARAN = {
     "qris_id":        "QRIS_ID_TOKO_SAMIRA",  # ← Ganti dengan ID QRIS asli
     "paylater_max":   0,
-    "paylater_tenor": [1, 2, 3],
+    "paylater_tenor": [],
 }
 
 # ─── Katalog Produk ──────────────────────────────────────────────────────────

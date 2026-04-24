@@ -7,6 +7,7 @@ import asyncio
 import io
 import os
 import logging
+import traceback
 from datetime import time as dtime
 
 from dotenv import load_dotenv
@@ -21,6 +22,8 @@ from telegram.ext import (
 )
 
 from data import INFO_TOKO, KATALOG, PEMBAYARAN, parse_harga, format_rupiah
+from ai_chat import tanya_ai
+from monitoring import init_monitoring, notif_error_sync, notif_startup, notif_shutdown
 from database import (
     init_db,
     get_stok_by_kategori,
@@ -51,6 +54,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 user_state: dict = {}
+ai_history: dict = {}   # { user_id: [{"role": ..., "content": ...}, ...] }
 OWNER_ID = INFO_TOKO["ID"]
 
 
@@ -123,16 +127,17 @@ def kb_kembali_menu() -> InlineKeyboardMarkup:
 
 
 def kb_metode_bayar() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup([
+    rows = [
         [
-            InlineKeyboardButton("💵 Cash",     callback_data="bayar_cash"),
-            InlineKeyboardButton("📷 QRIS",     callback_data="bayar_qris"),
+            InlineKeyboardButton("💵 Cash", callback_data="bayar_cash"),
+            InlineKeyboardButton("📷 QRIS", callback_data="bayar_qris"),
         ],
-        [
-            InlineKeyboardButton("🔄 Paylater (Cicilan)", callback_data="bayar_paylater"),
-        ],
-        [InlineKeyboardButton("❌ Batalkan", callback_data="batalkan_pesan")],
-    ])
+    ]
+    # Tombol paylater hanya muncul jika tenor tidak kosong
+    if PEMBAYARAN["paylater_tenor"]:
+        rows.append([InlineKeyboardButton("🔄 Paylater (Cicilan)", callback_data="bayar_paylater")])
+    rows.append([InlineKeyboardButton("❌ Batalkan", callback_data="batalkan_pesan")])
+    return InlineKeyboardMarkup(rows)
 
 
 def kb_tenor() -> InlineKeyboardMarkup:
@@ -849,9 +854,32 @@ async def handle_pesan(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             ]),
         )
     else:
-        await update.message.reply_text(
-            f"😕 *\"{teks}\"* tidak ditemukan.", parse_mode="Markdown", reply_markup=kb_menu_utama()
-        )
+        # ── Fallback AI: jawab pertanyaan bebas pelanggan ──
+        try:
+            riwayat = ai_history.get(uid, [])
+            jawaban = tanya_ai(teks, riwayat)
+
+            # Simpan riwayat percakapan (maks 10 pasang = 20 entri)
+            riwayat.append({"role": "user",      "content": teks})
+            riwayat.append({"role": "assistant", "content": jawaban})
+            ai_history[uid] = riwayat[-20:]
+
+            log_aktivitas(uid, uname, "ai_chat", teks)
+            await update.message.reply_text(
+                jawaban,
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🛒 Pesan Sekarang", callback_data="mulai_pesan")],
+                    [InlineKeyboardButton("🏠 Menu Utama",     callback_data="menu_utama")],
+                ]),
+            )
+        except Exception as e:
+            tb_str = traceback.format_exc()
+            logger.error(f"[AI] Error: {e}\n{tb_str}")
+            notif_error_sync("AI Chat Error", str(e), tb_str)
+            await update.message.reply_text(
+                "😕 Maaf, asisten sedang tidak tersedia. Silakan pilih menu atau hubungi kami langsung.",
+                reply_markup=kb_menu_utama(),
+            )
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -872,7 +900,13 @@ async def kirim_rekap_harian(ctx: ContextTypes.DEFAULT_TYPE):
 
 
 async def error_handler(update: object, ctx: ContextTypes.DEFAULT_TYPE):
-    logger.error("Exception:", exc_info=ctx.error)
+    tb_str = "".join(traceback.format_exception(type(ctx.error), ctx.error, ctx.error.__traceback__))
+    logger.error(f"[ErrorHandler] {type(ctx.error).__name__}: {ctx.error}\n{tb_str}")
+    notif_error_sync(
+        judul=f"Unhandled: {type(ctx.error).__name__}",
+        detail=str(ctx.error),
+        tb=tb_str,
+    )
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -890,6 +924,10 @@ async def main():
 
     app = Application.builder().token(TOKEN).build()
 
+    # ── Init monitoring (harus setelah app dibuat) ──────────────────────────
+    if OWNER_ID != 0:
+        init_monitoring(app.bot, OWNER_ID)
+
     app.add_handler(CommandHandler("start",      cmd_start))
     app.add_handler(CommandHandler("help",       cmd_help))
     app.add_handler(CommandHandler("laporan",    cmd_laporan))
@@ -906,9 +944,13 @@ async def main():
 
     async with app:
         await app.start()
+        await notif_startup()   # ← notif admin: bot nyala
         await app.updater.start_polling(allowed_updates=Update.ALL_TYPES)
         logger.info("Tekan Ctrl+C untuk berhenti.")
-        await asyncio.Event().wait()
+        try:
+            await asyncio.Event().wait()
+        finally:
+            await notif_shutdown()  # ← notif admin: bot mati/restart
         await app.updater.stop()
         await app.stop()
 
