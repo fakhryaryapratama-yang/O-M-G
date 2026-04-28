@@ -24,14 +24,9 @@ INFO_TOKO = {
 # ─── Konfigurasi Pembayaran ──────────────────────────────────────────────────
 # QRIS: isi dengan string ID merchant / nomor rekening QRIS kamu.
 # Contoh: "00020101021226570011ID.CO.BRI.WWW01189360050300000000000220303UMI..."
-#
-# Tenor paylater: daftar pilihan cicilan dalam bulan.
-# paylater_max: batas nominal maksimal paylater (0 = tidak ada batas).
 
 PEMBAYARAN = {
-    "qris_id":        "QRIS_ID_TOKO_SAMIRA",  # ← Ganti dengan ID QRIS asli
-    "paylater_max":   0,
-    "paylater_tenor": [],
+    "qris_id": "QRIS_ID_TOKO_SAMIRA",  # ← Ganti dengan ID QRIS asli
 }
 
 # ─── Katalog Produk ──────────────────────────────────────────────────────────

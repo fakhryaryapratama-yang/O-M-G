@@ -1,6 +1,6 @@
 """
 Bot Telegram Toko Samira
-Fitur: Menu | Cek Stok | Pemesanan | Pembayaran (Cash/QRIS/Paylater) | Laporan
+Fitur: Menu | Cek Stok | Pemesanan | Pembayaran (Cash/QRIS) | Laporan
 """
 
 import asyncio
@@ -42,7 +42,6 @@ from database import (
     STATUS_DITOLAK,
     BAYAR_CASH,
     BAYAR_QRIS,
-    BAYAR_PAYLATER,
 )
 
 # ─── Logging ─────────────────────────────────────────────────────────────────
@@ -132,22 +131,8 @@ def kb_metode_bayar() -> InlineKeyboardMarkup:
             InlineKeyboardButton("💵 Cash", callback_data="bayar_cash"),
             InlineKeyboardButton("📷 QRIS", callback_data="bayar_qris"),
         ],
+        [InlineKeyboardButton("❌ Batalkan", callback_data="batalkan_pesan")],
     ]
-    # Tombol paylater hanya muncul jika tenor tidak kosong
-    if PEMBAYARAN["paylater_tenor"]:
-        rows.append([InlineKeyboardButton("🔄 Paylater (Cicilan)", callback_data="bayar_paylater")])
-    rows.append([InlineKeyboardButton("❌ Batalkan", callback_data="batalkan_pesan")])
-    return InlineKeyboardMarkup(rows)
-
-
-def kb_tenor() -> InlineKeyboardMarkup:
-    tenor_list = PEMBAYARAN["paylater_tenor"]
-    buttons = [
-        InlineKeyboardButton(f"{t} Bulan", callback_data=f"tenor_{t}")
-        for t in tenor_list
-    ]
-    rows = [buttons[i:i+2] for i in range(0, len(buttons), 2)]
-    rows.append([InlineKeyboardButton("❌ Batalkan", callback_data="batalkan_pesan")])
     return InlineKeyboardMarkup(rows)
 
 
@@ -170,10 +155,9 @@ def label_stok(qty: int) -> str:
     return f"✅ Ada ({qty})"
 
 
-def label_metode(metode: str, tenor: int = 0) -> str:
-    if metode == BAYAR_CASH:     return "💵 Cash"
-    if metode == BAYAR_QRIS:     return "📷 QRIS"
-    if metode == BAYAR_PAYLATER: return f"🔄 Paylater {tenor} Bulan"
+def label_metode(metode: str) -> str:
+    if metode == BAYAR_CASH: return "💵 Cash"
+    if metode == BAYAR_QRIS: return "📷 QRIS"
     return metode
 
 
@@ -188,10 +172,7 @@ def format_detail_kategori(kategori_nama: str) -> str:
 
 
 def format_notif_pemilik(p) -> str:
-    metode_str = label_metode(p["metode_bayar"], p["tenor_bulan"])
-    cicilan_str = ""
-    if p["metode_bayar"] == BAYAR_PAYLATER and p["cicilan_per_bln"] > 0:
-        cicilan_str = f"\n💳 *Cicilan:* {format_rupiah(p['cicilan_per_bln'])}/bulan"
+    metode_str = label_metode(p["metode_bayar"])
     return (
         f"🔔 *PESANAN BARU — #{p['id']}*\n"
         f"{'═'*30}\n"
@@ -203,7 +184,7 @@ def format_notif_pemilik(p) -> str:
         f"💰 *Harga satuan:* {p['harga_teks']}\n"
         f"🔢 *Jumlah:* {p['qty']}\n"
         f"🧾 *Total:* {format_rupiah(p['total_harga'])}\n"
-        f"💳 *Pembayaran:* {metode_str}{cicilan_str}\n\n"
+        f"💳 *Pembayaran:* {metode_str}\n\n"
         f"⏰ {p['waktu']}"
     )
 
@@ -224,7 +205,7 @@ def format_laporan(lap: dict) -> str:
         teks += f"  ✅ {len(diterima)} diterima  ❌ {len(ditolak)} ditolak  ⏳ {len(menunggu)} menunggu\n"
         for p in lap["pesanan"]:
             icon = {"diterima": "✅", "ditolak": "❌", "menunggu": "⏳"}.get(p["status"], "•")
-            metode = label_metode(p["metode_bayar"], p["tenor_bulan"])
+            metode = label_metode(p["metode_bayar"])
             teks += f"  {icon} #{p['id']} {p['produk']} x{p['qty']} | {format_rupiah(p['total_harga'])} | {metode}\n"
     else:
         teks += "  _Belum ada pesanan_\n"
@@ -271,7 +252,7 @@ async def cmd_help(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         "Ketik nama produk untuk mencari langsung.\n\n"
         "━━━━━━━━━━━━━━━━\n"
         "*Metode Pembayaran:*\n"
-        "💵 Cash · 📷 QRIS · 🔄 Paylater (Cicilan)\n\n"
+        "💵 Cash · 📷 QRIS\n\n"
         "*Perintah Pemilik:*\n"
         "/laporan — Laporan hari ini\n"
         "/tambahstok — Tambah stok produk",
@@ -469,42 +450,14 @@ async def handle_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     # ── Pilih Metode Pembayaran ──
     elif d == "bayar_cash":
         state = user_state.get(uid, {})
-        state["metode_bayar"]  = BAYAR_CASH
-        state["tenor_bulan"]   = 0
-        state["cicilan_per_bln"] = 0
+        state["metode_bayar"] = BAYAR_CASH
         state["step"] = "pesan_konfirmasi"
         user_state[uid] = state
         await _tampil_ringkasan(q, state)
 
     elif d == "bayar_qris":
         state = user_state.get(uid, {})
-        state["metode_bayar"]  = BAYAR_QRIS
-        state["tenor_bulan"]   = 0
-        state["cicilan_per_bln"] = 0
-        state["step"] = "pesan_konfirmasi"
-        user_state[uid] = state
-        await _tampil_ringkasan(q, state)
-
-    elif d == "bayar_paylater":
-        state = user_state.get(uid, {})
-        state["metode_bayar"] = BAYAR_PAYLATER
-        state["step"] = "pesan_pilih_tenor"
-        user_state[uid] = state
-        total = state.get("total_harga", 0)
-        await q.edit_message_text(
-            f"🔄 *Paylater / Cicilan*\n\n"
-            f"Total belanja: *{format_rupiah(total)}*\n\n"
-            f"Pilih tenor cicilan:",
-            parse_mode="Markdown", reply_markup=kb_tenor(),
-        )
-
-    elif d.startswith("tenor_"):
-        tenor = int(d.split("_")[1])
-        state = user_state.get(uid, {})
-        total = state.get("total_harga", 0)
-        cicilan = total // tenor if tenor > 0 else total
-        state["tenor_bulan"]   = tenor
-        state["cicilan_per_bln"] = cicilan
+        state["metode_bayar"] = BAYAR_QRIS
         state["step"] = "pesan_konfirmasi"
         user_state[uid] = state
         await _tampil_ringkasan(q, state)
@@ -524,15 +477,10 @@ async def handle_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             format_notif_pemilik(p) + "\n\n✅ *PESANAN DITERIMA*", parse_mode="Markdown"
         )
         # Notif ke pelanggan
-        metode_str = label_metode(p["metode_bayar"], p["tenor_bulan"])
+        metode_str = label_metode(p["metode_bayar"])
         pesan_bayar = ""
         if p["metode_bayar"] == BAYAR_CASH:
             pesan_bayar = f"💵 Bayar *{format_rupiah(p['total_harga'])}* saat barang diterima."
-        elif p["metode_bayar"] == BAYAR_PAYLATER:
-            pesan_bayar = (
-                f"🔄 Cicilan *{format_rupiah(p['cicilan_per_bln'])}/bulan* "
-                f"selama *{p['tenor_bulan']} bulan*."
-            )
         try:
             await ctx.bot.send_message(
                 p["user_id"],
@@ -579,16 +527,12 @@ async def handle_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 async def _tampil_ringkasan(q, state: dict):
     """Tampilkan ringkasan pesanan lengkap dengan metode bayar."""
-    total      = state.get("total_harga", 0)
-    metode     = state.get("metode_bayar", BAYAR_CASH)
-    tenor      = state.get("tenor_bulan", 0)
-    cicilan    = state.get("cicilan_per_bln", 0)
+    total  = state.get("total_harga", 0)
+    metode = state.get("metode_bayar", BAYAR_CASH)
 
-    metode_str = label_metode(metode, tenor)
+    metode_str = label_metode(metode)
     bayar_info = ""
-    if metode == BAYAR_PAYLATER:
-        bayar_info = f"\n💳 Cicilan: *{format_rupiah(cicilan)}/bulan* × {tenor} bulan"
-    elif metode == BAYAR_QRIS:
+    if metode == BAYAR_QRIS:
         bayar_info = "\n📷 QR Code akan dikirim setelah pesanan dikonfirmasi pemilik"
 
     ringkasan = (
@@ -645,24 +589,22 @@ async def handle_konfirmasi_pesan(update: Update, ctx: ContextTypes.DEFAULT_TYPE
         return
 
     pesanan_id = buat_pesanan(
-        user_id       = uid,
-        username      = uname,
-        nama          = state["nama"],
-        hp            = state["hp"],
-        alamat        = state["alamat"],
-        catatan       = state.get("catatan", ""),
-        produk        = produk,
-        harga_teks    = state["harga_teks"],
-        qty           = qty,
-        total_harga   = state.get("total_harga", 0),
-        metode_bayar  = state.get("metode_bayar", BAYAR_CASH),
-        tenor_bulan   = state.get("tenor_bulan", 0),
-        cicilan_per_bln = state.get("cicilan_per_bln", 0),
+        user_id      = uid,
+        username     = uname,
+        nama         = state["nama"],
+        hp           = state["hp"],
+        alamat       = state["alamat"],
+        catatan      = state.get("catatan", ""),
+        produk       = produk,
+        harga_teks   = state["harga_teks"],
+        qty          = qty,
+        total_harga  = state.get("total_harga", 0),
+        metode_bayar = state.get("metode_bayar", BAYAR_CASH),
     )
     user_state.pop(uid, None)
     log_aktivitas(uid, uname, "pesan", f"#{pesanan_id} {produk} x{qty}")
 
-    metode_str = label_metode(state.get("metode_bayar", BAYAR_CASH), state.get("tenor_bulan", 0))
+    metode_str = label_metode(state.get("metode_bayar", BAYAR_CASH))
     await q.edit_message_text(
         f"✅ *Pesanan Berhasil Dikirim!*\n\n"
         f"📋 No. Pesanan: *#{pesanan_id}*\n"

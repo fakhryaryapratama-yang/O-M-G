@@ -12,9 +12,8 @@ STATUS_MENUNGGU = "menunggu"
 STATUS_DITERIMA = "diterima"
 STATUS_DITOLAK  = "ditolak"
 
-BAYAR_CASH     = "cash"
-BAYAR_QRIS     = "qris"
-BAYAR_PAYLATER = "paylater"
+BAYAR_CASH = "cash"
+BAYAR_QRIS = "qris"
 
 
 def get_conn():
@@ -52,8 +51,6 @@ def init_db():
             qty             INTEGER NOT NULL,
             total_harga     INTEGER NOT NULL DEFAULT 0,
             metode_bayar    TEXT    NOT NULL DEFAULT 'cash',
-            tenor_bulan     INTEGER DEFAULT 0,
-            cicilan_per_bln INTEGER DEFAULT 0,
             status          TEXT    NOT NULL DEFAULT 'menunggu',
             pesan_tolak     TEXT    DEFAULT '',
             waktu           TEXT    DEFAULT (datetime('now','localtime'))
@@ -62,10 +59,8 @@ def init_db():
 
     # Migrasi: tambah kolom baru jika tabel sudah ada tapi belum punya kolom pembayaran
     kolom_baru = {
-        "total_harga":     "INTEGER NOT NULL DEFAULT 0",
-        "metode_bayar":    "TEXT NOT NULL DEFAULT 'cash'",
-        "tenor_bulan":     "INTEGER DEFAULT 0",
-        "cicilan_per_bln": "INTEGER DEFAULT 0",
+        "total_harga":  "INTEGER NOT NULL DEFAULT 0",
+        "metode_bayar": "TEXT NOT NULL DEFAULT 'cash'",
     }
     existing = [row[1] for row in c.execute("PRAGMA table_info(pesanan)").fetchall()]
     for col, typedef in kolom_baru.items():
@@ -167,19 +162,19 @@ def cari_produk(keyword: str):
 def buat_pesanan(
     user_id, username, nama, hp, alamat, catatan,
     produk, harga_teks, qty, total_harga,
-    metode_bayar="cash", tenor_bulan=0, cicilan_per_bln=0
+    metode_bayar="cash"
 ) -> int:
     conn = get_conn()
     cur = conn.execute(
         """INSERT INTO pesanan
            (user_id, username, nama, hp, alamat, catatan,
             produk, harga_teks, qty, total_harga,
-            metode_bayar, tenor_bulan, cicilan_per_bln, status)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            metode_bayar, status)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
         (
             user_id, username or "unknown", nama, hp, alamat, catatan,
             produk, harga_teks, qty, total_harga,
-            metode_bayar, tenor_bulan, cicilan_per_bln, STATUS_MENUNGGU,
+            metode_bayar, STATUS_MENUNGGU,
         ),
     )
     pesanan_id = cur.lastrowid
