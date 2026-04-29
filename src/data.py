@@ -22,8 +22,7 @@ INFO_TOKO = {
 }
 
 # ─── Konfigurasi Pembayaran ──────────────────────────────────────────────────
-# QRIS: isi dengan string ID merchant / nomor rekening QRIS kamu.
-# Contoh: "00020101021226570011ID.CO.BRI.WWW01189360050300000000000220303UMI..."
+# QRIS: isi dengan string ID merchant / nomor rekening QRIS.
 
 PEMBAYARAN = {
     "qris_id": "QRIS_ID_TOKO_SAMIRA",  # ← Ganti dengan ID QRIS asli
