@@ -1,8 +1,3 @@
-"""
-monitoring.py — Monitoring error otomatis untuk Bot Toko Samira
-Kirim notifikasi ke Telegram admin jika ada error, startup, atau shutdown.
-"""
-
 import logging
 import asyncio
 from datetime import datetime

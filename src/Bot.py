@@ -1,8 +1,3 @@
-"""
-Bot Telegram Toko Samira
-Fitur: Menu | Cek Stok | Pemesanan | Pembayaran (Cash/QRIS) | Laporan
-"""
-
 import asyncio
 import io
 import os

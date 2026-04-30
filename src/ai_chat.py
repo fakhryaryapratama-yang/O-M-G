@@ -1,15 +1,3 @@
-"""
-ai_chat.py — Modul AI Chat untuk Bot Toko Samira
-Menggunakan Groq (GRATIS) sebagai AI engine.
-Model: llama-3.3-70b-versatile
-
-Cara dapat API key:
-1. Buka https://console.groq.com
-2. Daftar / login pakai Google
-3. Klik "API Keys" → "Create API Key"
-4. Tambahkan ke .env: GROQ_API_KEY=gsk_xxxxxxxxxx
-"""
-
 import os
 import logging
 from groq import Groq

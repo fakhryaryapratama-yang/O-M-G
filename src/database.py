@@ -1,8 +1,3 @@
-"""
-Database handler — SQLite
-Tabel: stok, pesanan, log_aktivitas
-"""
-
 import sqlite3
 from datetime import datetime
 
