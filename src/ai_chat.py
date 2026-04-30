@@ -38,8 +38,6 @@ def _build_context() -> str:
     lines.append("=== METODE PEMBAYARAN ===")
     lines.append("- Cash (bayar langsung / COD)")
     lines.append("- QRIS (scan QR, bayar digital)")
-    tenor = ", ".join(f"{t} bulan" for t in PEMBAYARAN["paylater_tenor"])
-    lines.append(f"- Paylater / Cicilan: tenor {tenor}")
     lines.append("")
 
     lines.append("=== KATALOG & STOK PRODUK ===")
