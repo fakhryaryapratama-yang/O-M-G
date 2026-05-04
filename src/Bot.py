@@ -40,10 +40,26 @@ from database import (
 )
 
 # ─── Logging ─────────────────────────────────────────────────────────────────
+_formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+
+# Semua log (INFO ke atas) → bot.log
+_file_handler = logging.FileHandler("bot.log", encoding="utf-8")
+_file_handler.setLevel(logging.INFO)
+_file_handler.setFormatter(_formatter)
+
+# Hanya ERROR ke atas → error_log.txt
+_error_handler = logging.FileHandler("error_log.txt", encoding="utf-8")
+_error_handler.setLevel(logging.ERROR)
+_error_handler.setFormatter(_formatter)
+
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     level=logging.INFO,
-    handlers=[logging.FileHandler("bot.log"), logging.StreamHandler()],
+    handlers=[
+        _file_handler,           # semua log → bot.log
+        _error_handler,          # hanya error → error_log.txt
+        logging.StreamHandler(), # tampil di terminal
+    ],
 )
 logger = logging.getLogger(__name__)
 
@@ -250,7 +266,8 @@ async def cmd_help(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         "💵 Cash · 📷 QRIS\n\n"
         "*Perintah Pemilik:*\n"
         "/laporan — Laporan hari ini\n"
-        "/tambahstok — Tambah stok produk",
+        "/tambahstok — Tambah stok produk\n"
+        "/test\_error — Simulasi error (testing)",
         parse_mode="Markdown", reply_markup=kb_menu_utama(),
     )
 
@@ -275,6 +292,24 @@ async def cmd_tambah_stok(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "📥 *Tambah Stok*\n\nKetik nama produk:", parse_mode="Markdown"
     )
+
+
+async def cmd_test_error(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Command /test_error — simulasi error untuk memastikan logging & monitoring aktif."""
+    uid = update.effective_user.id
+    if OWNER_ID != 0 and uid != OWNER_ID:
+        await update.message.reply_text("⛔ Fitur ini hanya untuk pemilik toko.")
+        return
+    await update.message.reply_text(
+        "🧪 *Simulasi Error*\n\nMemicu error buatan untuk menguji:\n"
+        "• Pencatatan di `bot.log`\n"
+        "• Pencatatan di `error_log.txt`\n"
+        "• Notifikasi ke Telegram admin\n\n"
+        "Tunggu sebentar...",
+        parse_mode="Markdown",
+    )
+    # Sengaja raise error agar ditangkap error_handler
+    raise RuntimeError("🧪 Ini adalah simulasi error untuk testing sistem monitoring.")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -869,6 +904,7 @@ async def main():
     app.add_handler(CommandHandler("help",       cmd_help))
     app.add_handler(CommandHandler("laporan",    cmd_laporan))
     app.add_handler(CommandHandler("tambahstok", cmd_tambah_stok))
+    app.add_handler(CommandHandler("test_error", cmd_test_error))
 
     app.add_handler(CallbackQueryHandler(handle_konfirmasi_pesan, pattern="^konfirmasi_pesan$"))
     app.add_handler(CallbackQueryHandler(handle_callback))
