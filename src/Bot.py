@@ -879,17 +879,30 @@ async def error_handler(update: object, ctx: ContextTypes.DEFAULT_TYPE):
         detail=str(ctx.error),
         tb=tb_str,
     )
+
 async def cmd_log(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
+
     if OWNER_ID != 0 and uid != OWNER_ID:
         await update.message.reply_text("⛔ Hanya untuk pemilik.")
         return
+
     try:
         with open("error_log.txt", "r", encoding="utf-8") as f:
-            isi = f.read()[-3000:]  # 3000 karakter terakhir
-        await update.message.reply_text(f"```\n{isi}\n```", parse_mode="Markdown")
+            isi = f.read()[-3000:]  # ambil 3000 karakter terakhir
+
+        if not isi.strip():
+            isi = "Belum ada error."
+
+        await update.message.reply_text(
+            f"```\n{isi}\n```",
+            parse_mode="Markdown"
+        )
+
     except FileNotFoundError:
-        await update.message.reply_text("✅ error_log.txt kosong / belum ada error.")
+        await update.message.reply_text(
+            "✅ error_log.txt belum ada / masih kosong."
+        )
 
 
 # ══════════════════════════════════════════════════════════════════════════════
