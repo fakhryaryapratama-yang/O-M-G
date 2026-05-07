@@ -905,6 +905,19 @@ async def main():
     app.add_handler(CommandHandler("laporan",    cmd_laporan))
     app.add_handler(CommandHandler("tambahstok", cmd_tambah_stok))
     app.add_handler(CommandHandler("test_error", cmd_test_error))
+    app.add_handler(CommandHandler("log", cmd_log))
+
+async def cmd_log(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    uid = update.effective_user.id
+    if OWNER_ID != 0 and uid != OWNER_ID:
+        await update.message.reply_text("⛔ Hanya untuk pemilik.")
+        return
+    try:
+        with open("error_log.txt", "r", encoding="utf-8") as f:
+            isi = f.read()[-3000:]  # 3000 karakter terakhir
+        await update.message.reply_text(f"```\n{isi}\n```", parse_mode="Markdown")
+    except FileNotFoundError:
+        await update.message.reply_text("✅ error_log.txt kosong / belum ada error.")
 
     app.add_handler(CallbackQueryHandler(handle_konfirmasi_pesan, pattern="^konfirmasi_pesan$"))
     app.add_handler(CallbackQueryHandler(handle_callback))
