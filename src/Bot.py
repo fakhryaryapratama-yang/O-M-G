@@ -903,6 +903,25 @@ async def cmd_log(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(
             "✅ error_log.txt belum ada / masih kosong."
         )
+    
+async def cmd_downloadlog(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    uid = update.effective_user.id
+
+    if OWNER_ID != 0 and uid != OWNER_ID:
+        await update.message.reply_text("⛔ Hanya untuk pemilik.")
+        return
+
+    try:
+        await update.message.reply_document(
+            document=open("error_log.txt", "rb"),
+            filename="error_log.txt",
+            caption="📄 File error log"
+        )
+
+    except FileNotFoundError:
+        await update.message.reply_text(
+            "❌ error_log.txt belum ada."
+        )
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -930,7 +949,7 @@ async def main():
     app.add_handler(CommandHandler("tambahstok", cmd_tambah_stok))
     app.add_handler(CommandHandler("test_error", cmd_test_error))
     app.add_handler(CommandHandler("log", cmd_log))
-
+    app.add_handler(CommandHandler("downloadlog", cmd_downloadlog))
     app.add_handler(CallbackQueryHandler(handle_konfirmasi_pesan, pattern="^konfirmasi_pesan$"))
     app.add_handler(CallbackQueryHandler(handle_callback))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_pesan))
